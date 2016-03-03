@@ -291,6 +291,7 @@ class BitGo(object):
         """
         MINIMAL_FEE = 20000
         MINIMAL_SPLIT = 10000000
+        MIN_UNSPENTS_FAN = 5
 
         wallet = self.get_wallet(wallet_id)
         if not wallet['spendingAccount']:
@@ -333,9 +334,11 @@ class BitGo(object):
         cipher = sjcl.SJCL()
         xprv = cipher.decrypt(data, passcode)
 
-        unspents = self.get_unspents(wallet_id)
+        unspents = self.get_unspents(wallet_id)['unspents']
+        order_unspents = sorted(unspents, key=lambda k: k['confirmations'], reverse=True)
+
         total_value = 0
-        for d in unspents['unspents'][::-1]:
+        for d in order_unspents:
             path = keychain_path + d['chainPath']
             chain_paths.append(path)
             p2sh.append(h2b(d["redeemScript"]))
@@ -349,7 +352,7 @@ class BitGo(object):
                 break
 
         # make many outputs?
-        if len(unspents['unspents']) < 5 and (total_value > (amount + MINIMAL_SPLIT)) and fan_unspend > 0:
+        if len(order_unspents) < MIN_UNSPENTS_FAN and (total_value > (amount + MINIMAL_SPLIT)) and fan_unspend > 0:
             fee = self.calculate_fee(len(spendables), fan_unspend)
             value = (total_value - amount - fee) / fan_unspend
             for i in range(fan_unspend):
