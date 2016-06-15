@@ -361,8 +361,6 @@ class BitGo(object):
             # add a change address
             if fee is None:
                 fee = self.calculate_fee(len(spendables), 2)
-            elif fee < MINIMAL_FEE:
-                raise Exception("Fee to low... your fee: %s min fee allowed: %s"  % (fee, MINIMAL_FEE))
             value = total_value - amount - fee
             if value > 10000: #avoid dust
                 payables.append((change_address, value))
